@@ -12,3 +12,9 @@ $sToken = [Token Key];
 
 
 Then you should be able to tweak and run the various tests.
+
+
+Tests should be run from the command line like this (to handle the captcha image
+requirements for certain calls):
+
+path/to/test$ php -f get_list_account.php
