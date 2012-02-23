@@ -1,0 +1,14 @@
+To create a token key you'll need to sign up for a Central account at Clickatell:
+http://www.clickatell.com/register/account_signup.php
+
+Once you've created your account, login and go to the "Manage my Product" page
+and add a new "Clickatell Connect API Applications" entry. Once you've completed
+the form you will be given a "API Application Session Token".
+
+
+Create a config.php file in the test folder with the following details:
+
+$sToken = [Token Key];
+
+
+Then you should be able to tweak and run the various tests.
