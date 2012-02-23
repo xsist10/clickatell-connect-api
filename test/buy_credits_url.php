@@ -1,0 +1,11 @@
+#!/usr/bin/php
+<?php
+
+require_once 'config.php';
+require_once '../lib/clickatell-connect-api.php';
+
+$oClickatell = new ClickatellConnectApi($sToken);
+print_r($oClickatell->buy_credits_url(array(
+    'user'          => 'test',
+    'password'      => 'abc123',
+)));
