@@ -6,35 +6,13 @@
  * if you wish to integrate SMS capabilities in an application where the user
  * bears the SMS cost.
  *
+ * http://www.shone.co.za
+ *
+ * @copyright Thomas Shone 2012
+ * @license Licensed under the Creative Commons Attribution 3.0 Unported License.
  * @package clickatell-connect-api
  * @author  Thomas Shone <xsist10@gmail.com>
  */
-
-/*class ClickatellConnectApiPacket
-{
-    private $sXml    = '';
-
-    public function reset()
-    {
-        $this->aPacket = array();
-        $this->sXml    = '';
-    }
-
-    public function set_xml($aPacket)
-    {
-        $this->sXml = $aPacket;
-    }
-
-    public function set_action($sAction)
-    {
-        $this->aPacket['Action'] = $sAction;
-    }
-
-    public function to_xml()
-    {
-
-    }
-}*/
 
 /**
  * This class is used to convert a stdClass object into an XML string for
@@ -176,7 +154,7 @@ class ClickatellConnectApi
     {
         foreach ($aFields as $sField)
         {
-            if (empty($aData[$sField]))
+            if (!empty($aData[$sField]))
             {
                 $this->oPacket->$sField = $aData[$sField];
             }
@@ -214,37 +192,56 @@ class ClickatellConnectApi
         // Process the result
         $oResponse = new SimpleXMLElement($sBody);
         // Convert into a normal stdClass
-        $oResponse = json_decode(json_encode($oResponse), true);
+        $aResponse = json_decode(json_encode($oResponse), true);
 
         // Check for error messages
-        if ($oResponse['Result'] == self::RESULT_FAILED)
+        if ($aResponse['Result'] == self::RESULT_FAILED)
         {
             $sErrorMessage = '';
+            if (!empty($aResponse['Error']))
+            {
+                if (is_array($aResponse['Error']))
+                {
+                    foreach ($aResponse['Error'] as $iIndex => $iCode)
+                    {
+                        if ($iCode == '400')
+                        {
+                            $aErrorMessages[] = ' Please call get_captcha(), view the image and then pass the captcha value in the captcha_code field.';
+                        }
+                        else
+                        {
+                            $aErrorMessages[] = $iCode . (!empty($aResponse['Description'][$iIndex]) ? ' - ' . $aResponse['Description'][$iIndex] : '');
+                        }
+                    }
 
-            !empty($oResponse['Error'])
-                && $sErrorMessage = $oResponse['Error'];
-
-            !empty($oResponse['Description'])
-                && $sErrorMessage .= ': ' . $oResponse['Description'] . '.';
+                    $sErrorMessage = implode(', ', $aErrorMessages);
+                }
+                else
+                {
+                    if ($aResponse['Error'] == '400')
+                    {
+                        $sErrorMessage = ' Please call get_captcha(), view the image and then pass the captcha value in the captcha_code field.';
+                    }
+                    else
+                    {
+                        $sErrorMessage = $aResponse['Error'] . (!empty($aResponse['Description']) ? ' - ' . $aResponse['Description'] : '');
+                    }
+                }
+            }
 
             empty($sErrorMessage)
                 && $sErrorMessage = 'Unknown Error';
 
-            if (!empty($oResponse['Error']) && $oResponse['Error'] == '400')
-            {
-                $sErrorMessage .= ' Please call get_captcha(), view the image and then pass the captcha value in the captcha_code field.';
-            }
-
-            throw new ClickatellConncetApiException('Request Failed. ' . $sErrorMessage);
+            throw new ClickatellConncetApiException('Request Failed: ' . $sErrorMessage);
         }
 
-        if (isset($oResponse['Values']['Value']))
+        if (isset($aResponse['Values']['Value']))
         {
-            return $oResponse['Values']['Value'];
+            return $aResponse['Values']['Value'];
         }
         else
         {
-            return $oResponse;
+            return $aResponse;
         }
     }
 
@@ -344,6 +341,11 @@ class ClickatellConnectApi
      */
     public function register($aData)
     {
+        if (!$this->sCaptchaId)
+        {
+            throw new ClickatellConncetApiException('No captcha generated. Use the get_captcha() function to generate a captcha.');
+        }
+
         $aRequiredFields = array(
             'user',
             'fname',
@@ -351,25 +353,26 @@ class ClickatellConnectApi
             'password',
             'email_address',
             'mobile_number',
-            'country_id'
+            'country_id',
+            'captcha_code'
         );
         $this->_checkFields($aData, $aRequiredFields);
 
         // The Country Field is not a number. Check if it matches a country name
-        if (!is_numeric($aData['country']))
+        if (!is_numeric($aData['country_id']))
         {
             $aCountryList = $this->get_list_country();
             foreach ($aCountryList as $aCountry)
             {
-                if ($aCountry['name'] == $aData['country'])
+                if ($aCountry['name'] == $aData['country_id'])
                 {
-                    $aData['country'] = $aCountry['country_id'];
+                    $aData['country_id'] = $aCountry['country_id'];
                 }
             }
         }
 
         // Still no luck?
-        if (!is_numeric($aData['country']))
+        if (!is_numeric($aData['country_id']))
         {
             throw new ClickatellConncetApiException('Invalid country specified');
         }
@@ -386,17 +389,12 @@ class ClickatellConnectApi
         ), $aRequiredFields);
         $this->_buildPacket($aData, $aFields);
 
-        if ($this->sCaptchaId && !empty($aData['captcha_code']))
-        {
-            $this->oPacket->captcha_id = $this->sCaptchaId;
-            $this->oPacket->captcha_code = $aData['captcha_code'];
-            $this->sCaptchaId = '';
-        }
-
-        $this->Action       = 'register';
-        $this->test_mode    = $this->bTest ? 1 : 0;
-        $this->accept_terms = 1;
-        $this->force_create = 1;
+        $this->oPacket->Action       = 'register';
+        $this->oPacket->test_mode    = $this->bTest ? 1 : 0;
+        $this->oPacket->accept_terms = 1;
+        $this->oPacket->force_create = 1;
+        $this->oPacket->captcha_id = $this->sCaptchaId;
+        $this->sCaptchaId = '';
 
         $aResult = $this->_send();
 

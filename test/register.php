@@ -13,7 +13,7 @@ printf("Open captcha.png and enter the captcha code below: ");
 $sCaptcha = trim(fgets(STDIN));
 
 $aData = array(
-    'user'          => uniqid('username-'),
+    'user'          => uniqid('username'),
     'fname'         => 'test',
     'sname'         => 'mctest',
     'password'      => 'abc123',
@@ -22,4 +22,4 @@ $aData = array(
     'country_id'    => 'USA',
     'captcha_code'  => $sCaptcha,
 );
-print_r($oClickatell->register($aData));
+echo "Registration " . ($oClickatell->register($aData) ? "Successful" : "Failed") . "!\n";
