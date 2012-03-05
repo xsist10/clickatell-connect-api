@@ -397,7 +397,6 @@ class ClickatellConnectApi
         $this->sCaptchaId = '';
 
         $aResult = $this->_send();
-
         return $aResult['Result'] == self::RESULT_SUCCESS;
     }
 
@@ -486,14 +485,14 @@ class ClickatellConnectApi
     }
 
     /**
-     * The send_activation_status service can be called to check if a user’s
+     * The sms_activation_status service can be called to check if a user’s
      * account has been SMS activated.
      *
      * @param array $aData
      * @return array
      * @throws ClickatellConncetApiException
      */
-    public function send_activation_status($aData = array())
+    public function sms_activation_status($aData = array())
     {
         $this->_setup();
 
@@ -508,8 +507,23 @@ class ClickatellConnectApi
             $this->sCaptchaId = '';
         }
 
-        $this->oPacket->Action = 'send_activation_status';
-        return $this->_send();
+        $this->oPacket->Action = 'sms_activation_status';
+        try
+        {
+            $aResult = $this->_send();
+            return $aResult['Result'] == self::RESULT_SUCCESS;
+        }
+        catch (ClickatellConncetApiException $oException)
+        {
+            if ($oException->getMessage() == "Request Failed: 104 - Not SMS activated")
+            {
+                return false;
+            }
+            else
+            {
+                throw $oException;
+            }
+        }
     }
 
     /**
@@ -562,7 +576,7 @@ class ClickatellConnectApi
             $this->sCaptchaId = '';
         }
 
-        $this->oPacket->Action = 'send_activation_sms';
+        $this->oPacket->Action = 'validate_activation_sms';
         return $this->_send();
     }
 

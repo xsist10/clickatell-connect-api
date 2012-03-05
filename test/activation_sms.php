@@ -15,6 +15,6 @@ $sSmsCode = trim(fgets(STDIN));
 
 print_r($oClickatell->validate_activation_sms(array(
     'user'                  => 'test',
-    'password'              => 'test@test.com',
+    'password'              => 'abc123',
     'sms_activation_code'   => $sSmsCode,
 )));
